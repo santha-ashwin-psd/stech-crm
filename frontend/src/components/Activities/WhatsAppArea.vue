@@ -87,9 +87,21 @@
             </div>
           </div>
           <div
-            v-else-if="whatsapp.content_type == 'text'"
-            v-html="formatWhatsAppMessage(whatsapp.message)"
-          />
+            v-else-if="whatsapp.content_type == 'text' || whatsapp.content_type == 'interactive'"
+            class="flex flex-col gap-2"
+          >
+            <div v-html="formatWhatsAppMessage(whatsapp.message)" />
+            <div v-if="whatsapp.buttons && parseButtons(whatsapp.buttons).length" class="flex flex-col gap-1 mt-2">
+              <div
+                v-for="btn in parseButtons(whatsapp.buttons)"
+                :key="btn.id || btn.title"
+                class="rounded-md border border-ink-gray-3 px-3 py-2 text-sm bg-surface-gray-2"
+              >
+                <div class="font-medium text-ink-gray-9">{{ btn.title || btn.button_label || btn.name }}</div>
+                <div v-if="btn.description" class="text-xs text-ink-gray-5 mt-0.5">{{ btn.description }}</div>
+              </div>
+            </div>
+          </div>
           <div
             v-else-if="whatsapp.content_type == 'button'"
             v-html="formatWhatsAppMessage(whatsapp.message)"
@@ -225,6 +237,15 @@ function formatWhatsAppMessage(message) {
   message = message.replace(/(\d+)\. (.*?)(?=\s*(\d+)\.|$)/g, '<li>$2</li>')
 
   return sanitizeHTML(message)
+}
+
+function parseButtons(buttons) {
+  if (!buttons) return []
+  try {
+    return typeof buttons === 'string' ? JSON.parse(buttons) : buttons
+  } catch (e) {
+    return []
+  }
 }
 
 const emoji = ref('')

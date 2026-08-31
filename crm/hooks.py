@@ -169,12 +169,13 @@ doc_events = {
 		"on_update": ["crm.utils.on_communication_update"],
 	},
 	"Comment": {
-		"after_insert": ["crm.utils.on_comment_insert", "crm.www.api.handle_outgoing_comment"],
+		"after_insert": ["crm.utils.on_comment_insert"],
 		"on_update": ["crm.api.comment.on_update"],
 	},
 	"WhatsApp Message": {
 		"validate": ["crm.api.whatsapp.validate"],
 		"on_update": ["crm.api.whatsapp.on_update"],
+		"after_insert": ["crm.api.whatsapp.after_insert"],
 	},
 	"CRM Deal": {
 		"on_update": [

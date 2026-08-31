@@ -58,6 +58,65 @@ def on_update(doc, method):
 	notify_agent(doc)
 
 
+def after_insert(doc, method):
+	return
+	if doc.type == "Incoming":
+		from datetime import datetime, timedelta
+		last_24h = datetime.now() - timedelta(days=1)
+		
+		# Check if this is the first message in the last 24h
+		recent_messages = frappe.db.count("WhatsApp Message", {
+			"from": doc.get("from"),
+			"type": "Incoming",
+			"creation": (">", last_24h),
+			"name": ("!=", doc.name)
+		})
+		
+		if recent_messages == 0:
+			template_name = "Welcome Message"
+			if frappe.db.exists("WhatsApp Templates", template_name):
+				new_msg = frappe.new_doc("WhatsApp Message")
+				new_msg.type = "Outgoing"
+				new_msg.to = doc.get("from")
+				new_msg.whatsapp_account = doc.whatsapp_account
+				new_msg.template = template_name
+				
+				if doc.reference_doctype and doc.reference_name:
+					new_msg.reference_doctype = doc.reference_doctype
+					new_msg.reference_name = doc.reference_name
+				
+				new_msg.insert(ignore_permissions=True)
+			else:
+				# Send fallback welcome list message
+				welcome_text = (
+					"Welcome to Stech Automation Pvt Ltd! 👋\n\n"
+					"We specialize in smart home and building automation — lighting control, security & surveillance, "
+					"access control, and entertainment systems that make your spaces smarter, safer, and effortless to live in.\n\n"
+					"Please select an option below to help us assist you better."
+				)
+				
+				buttons = [
+					{"id": "opt_sales", "title": "Sales", "description": "Talk to our sales team"},
+					{"id": "opt_support", "title": "Support", "description": "Get breakdown support"},
+					{"id": "opt_demo", "title": "Demo", "description": "Book a product demo"},
+					{"id": "opt_callback", "title": "Callback", "description": "Request a call back"}
+				]
+				
+				new_msg = frappe.new_doc("WhatsApp Message")
+				new_msg.type = "Outgoing"
+				new_msg.to = doc.get("from")
+				new_msg.whatsapp_account = doc.whatsapp_account
+				new_msg.message = welcome_text
+				new_msg.content_type = "interactive"
+				new_msg.buttons = json.dumps(buttons)
+				
+				if doc.reference_doctype and doc.reference_name:
+					new_msg.reference_doctype = doc.reference_doctype
+					new_msg.reference_name = doc.reference_name
+				
+				new_msg.insert(ignore_permissions=True)
+
+
 def notify_agent(doc):
 	if doc.type == "Incoming":
 		if not doc.reference_doctype or not doc.reference_name:
@@ -139,6 +198,7 @@ def get_whatsapp_messages(reference_doctype: str, reference_name: str):
 					"content_type",
 					"message_type",
 					"attach",
+					"buttons",
 					"template",
 					"use_template",
 					"message_id",
@@ -168,6 +228,7 @@ def get_whatsapp_messages(reference_doctype: str, reference_name: str):
 			"content_type",
 			"message_type",
 			"attach",
+			"buttons",
 			"template",
 			"use_template",
 			"message_id",
