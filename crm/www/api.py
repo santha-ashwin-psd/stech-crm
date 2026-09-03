@@ -8,10 +8,7 @@ import requests
 # Constants
 # ---------------------------------------------------------------------------
 
-VERIFY_TOKEN = "erpnext_whatsapp_2026"
 WHATSAPP_SOURCE = "WhatsApp"
-WHATSAPP_PHONE_NUMBER_ID = "1269335696258495"
-WHATSAPP_ACCESS_TOKEN = "EAAOdxd27ryMBSZAgB8y7Uic0230zYZARa5BeHDVNvsoqEaZAbnoLu2iy6xA7LOO2LTz4VD5R1fPmlfETeJAneXi0e8bEwTqp7ef22RwcP7CQ43cLZCZBzJhuLw0CYhscztUiyhJ33ReozUDOZB9W9vMzXRjGTpTZAyDnZA3LcPIDXVnJWUAGVcktWqn0dROEawZDZD"
 # ===========================================================================
 # Public API endpoints
 # ===========================================================================
@@ -23,11 +20,7 @@ def webhook():
     Handles both WhatsApp webhook verification (GET) and
     incoming message events (POST).
     """
-    if frappe.request.method == "GET":
-        return _handle_webhook_verification()
-
-    elif frappe.request.method == "POST":
-        return _handle_incoming_message()
+    pass
 
 
 @frappe.whitelist(allow_guest=True)
@@ -74,12 +67,22 @@ def send_whatsapp_message(
     create_comment: bool = True
 ):
     """
-    Send an outgoing WhatsApp message using the Meta Cloud API.
+    Send an outgoing WhatsApp message using the configured WhatsApp Account.
     """
-    url = f"https://graph.facebook.com/v19.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
+    # Fetch the default outgoing WhatsApp Account
+    account_name = frappe.db.get_value("WhatsApp Account", {"is_default_outgoing": 1}, "name")
+    if not account_name:
+        return {"status": "error", "message": "No default outgoing WhatsApp Account configured"}
+        
+    wa_account = frappe.get_doc("WhatsApp Account", account_name)
+    
+    if not wa_account.phone_id or not wa_account.token:
+        return {"status": "error", "message": "WhatsApp Account is missing Phone ID or Token"}
+
+    url = f"https://graph.facebook.com/v19.0/{wa_account.phone_id}/messages"
 
     headers = {
-        "Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}",
+        "Authorization": f"Bearer {wa_account.token}",
         "Content-Type": "application/json",
     }
 
